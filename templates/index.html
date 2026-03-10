@@ -1,0 +1,895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BICE Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #080c10;
+  --surface:   #0f1419;
+  --surface2:  #131c25;
+  --border:    #1a2535;
+  --accent:    #00d4aa;
+  --accent2:   #0066ff;
+  --green:     #00d4aa;
+  --red:       #ff4757;
+  --yellow:    #ffa502;
+  --text:      #e8edf2;
+  --muted:     #4a5a6a;
+  --muted2:    #2a3a4a;
+  --mono:      'DM Mono', monospace;
+  --sans:      'Sora', sans-serif;
+}
+
+html { font-size: 14px; }
+body {
+  background: var(--bg);
+  font-family: var(--sans);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Layout */
+.layout { display: flex; min-height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  width: 220px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 24px 16px;
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  margin-bottom: 32px;
+}
+
+.brand-icon {
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+
+.brand-name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+.brand-sub {
+  font-size: 10px;
+  color: var(--muted);
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.nav-section {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  padding: 0 8px;
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+}
+
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: rgba(0,212,170,0.1); color: var(--accent); }
+.nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  text-decoration: none;
+}
+.logout-btn:hover { background: rgba(255,71,87,0.1); color: var(--red); }
+
+/* Main content */
+.main {
+  margin-left: 220px;
+  flex: 1;
+  padding: 28px 32px;
+  max-width: calc(100vw - 220px);
+}
+
+/* Header */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.page-title { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.page-sub { font-size: 12px; color: var(--muted); margin-top: 2px; font-family: var(--mono); }
+
+.last-update {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 6px var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* KPI Cards */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.2s;
+}
+.kpi-card:hover { border-color: var(--muted2); }
+
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  opacity: 0.06;
+  transform: translate(20px, -20px);
+}
+.kpi-card.balance::before  { background: var(--accent);  width: 100px; height: 100px; }
+.kpi-card.ingresos::before { background: var(--green);   width: 90px; height: 90px; }
+.kpi-card.gastos::before   { background: var(--red);     width: 90px; height: 90px; }
+.kpi-card.total::before    { background: var(--accent2); width: 90px; height: 90px; }
+
+.kpi-label {
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+  margin-bottom: 12px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: -1px;
+  line-height: 1;
+}
+
+.kpi-card.balance  .kpi-value { color: var(--accent); }
+.kpi-card.ingresos .kpi-value { color: var(--green); }
+.kpi-card.gastos   .kpi-value { color: var(--red); }
+.kpi-card.total    .kpi-value { color: var(--accent2); }
+
+.kpi-meta {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+
+/* Charts row */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.chart-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.chart-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.chart-sub {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-bottom: 20px;
+}
+
+.chart-container { position: relative; }
+
+/* Categorías list */
+.cat-list { list-style: none; }
+.cat-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cat-item:last-child { border-bottom: none; }
+.cat-dot {
+  width: 8px; height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.cat-name { font-size: 12px; flex: 1; }
+.cat-bar-wrap {
+  width: 80px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cat-bar {
+  height: 100%;
+  border-radius: 2px;
+  background: var(--accent);
+}
+.cat-amount {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--red);
+  text-align: right;
+  min-width: 80px;
+}
+
+/* Movements table */
+.table-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.table-title { font-size: 13px; font-weight: 600; }
+
+.filters {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filter-input, .filter-select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.filter-input { width: 200px; }
+.filter-input:focus, .filter-select:focus { border-color: var(--accent); }
+.filter-input::placeholder { color: var(--muted); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  font-size: 10px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  color: var(--muted);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+td {
+  padding: 11px 16px;
+  border-bottom: 1px solid rgba(26,37,53,0.5);
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.015); }
+
+.td-date {
+  font-family: var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+  font-size: 11px;
+}
+
+.td-desc {
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.td-amount {
+  font-family: var(--mono);
+  font-weight: 500;
+  text-align: right;
+  white-space: nowrap;
+}
+.td-amount.positive { color: var(--green); }
+.td-amount.negative { color: var(--red); }
+
+.td-balance {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--muted);
+  text-align: right;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border);
+}
+
+.pagination-info { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+
+.pagination-btns { display: flex; gap: 6px; }
+
+.pg-btn {
+  padding: 5px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pg-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.pg-btn:disabled { opacity: 0.3; cursor: default; }
+.pg-btn.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
+
+/* Skeleton loader */
+.skeleton {
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface2) 50%, var(--border) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--muted);
+}
+.empty-icon { font-size: 36px; margin-bottom: 12px; }
+.empty-text { font-size: 13px; }
+
+/* Category colors */
+.cat-color-0 { background: #00d4aa; }
+.cat-color-1 { background: #0066ff; }
+.cat-color-2 { background: #ffa502; }
+.cat-color-3 { background: #ff4757; }
+.cat-color-4 { background: #a55eea; }
+.cat-color-5 { background: #2ed573; }
+.cat-color-6 { background: #ff6b81; }
+.cat-color-7 { background: #eccc68; }
+.cat-color-8 { background: #70a1ff; }
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  .charts-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main { margin-left: 0; max-width: 100vw; padding: 16px; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-icon">₿</div>
+      <div>
+        <div class="brand-name">Banking</div>
+        <div class="brand-sub">Dashboard</div>
+      </div>
+    </div>
+
+    <div class="nav-section">Vistas</div>
+    <button class="nav-item active" onclick="showSection('overview')">
+      <span class="icon">◈</span> Resumen
+    </button>
+    <button class="nav-item" onclick="showSection('movements')">
+      <span class="icon">≡</span> Movimientos
+    </button>
+
+    <div class="sidebar-footer">
+      <a href="/logout" class="logout-btn">
+        <span class="icon">⎋</span> Cerrar sesión
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+
+    <!-- Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-title">Dashboard BICE</div>
+        <div class="page-sub" id="last-update-text">Cargando...</div>
+      </div>
+      <div class="last-update">
+        <div class="status-dot"></div>
+        <span id="status-label">Activo</span>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi-card balance">
+        <div class="kpi-label">Saldo actual</div>
+        <div class="kpi-value" id="kpi-balance">—</div>
+        <div class="kpi-meta" id="kpi-balance-at">—</div>
+      </div>
+      <div class="kpi-card ingresos">
+        <div class="kpi-label">Ingresos del mes</div>
+        <div class="kpi-value" id="kpi-ingresos">—</div>
+        <div class="kpi-meta">Mes actual</div>
+      </div>
+      <div class="kpi-card gastos">
+        <div class="kpi-label">Gastos del mes</div>
+        <div class="kpi-value" id="kpi-gastos">—</div>
+        <div class="kpi-meta">Mes actual</div>
+      </div>
+      <div class="kpi-card total">
+        <div class="kpi-label">Total movimientos</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-meta">Histórico</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div id="section-overview">
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Ingresos vs Gastos</div>
+          <div class="chart-sub">ÚLTIMOS 6 MESES</div>
+          <div class="chart-container" style="height:220px">
+            <canvas id="chartMonthly"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Gastos por categoría</div>
+          <div class="chart-sub">DISTRIBUCIÓN TOTAL</div>
+          <ul class="cat-list" id="cat-list">
+            <li class="cat-item"><div class="skeleton" style="width:100%;height:20px"></div></li>
+            <li class="cat-item"><div class="skeleton" style="width:80%;height:20px"></div></li>
+            <li class="cat-item"><div class="skeleton" style="width:60%;height:20px"></div></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Movements Table -->
+    <div class="table-card">
+      <div class="table-header">
+        <div class="table-title">Movimientos</div>
+        <div class="filters">
+          <input class="filter-input" type="text" id="filter-search" placeholder="Buscar descripción...">
+          <select class="filter-select" id="filter-tipo">
+            <option value="all">Todos</option>
+            <option value="ingreso">Ingresos</option>
+            <option value="gasto">Gastos</option>
+          </select>
+          <select class="filter-select" id="filter-categoria">
+            <option value="all">Categoría</option>
+          </select>
+          <select class="filter-select" id="filter-mes">
+            <option value="">Todos los meses</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="overflow-x:auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Descripción</th>
+              <th>Categoría</th>
+              <th style="text-align:right">Monto</th>
+              <th style="text-align:right">Saldo</th>
+            </tr>
+          </thead>
+          <tbody id="movements-tbody">
+            <tr><td colspan="5"><div style="padding:40px;text-align:center;color:var(--muted)">Cargando...</div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination">
+        <div class="pagination-info" id="pagination-info">—</div>
+        <div class="pagination-btns" id="pagination-btns"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const CAT_COLORS = [
+  '#00d4aa','#0066ff','#ffa502','#ff4757','#a55eea',
+  '#2ed573','#ff6b81','#eccc68','#70a1ff','#1e90ff'
+];
+
+const CATEGORIES = [
+  'Supermercado','Restaurante','Transporte','Farmacia',
+  'Transferencia','Comercio','Servicios','Salud','Entretenimiento','Otros'
+];
+
+function clpFormat(n) {
+  if (n === null || n === undefined) return '—';
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000)     return `$${Math.round(n/1_000)}K`;
+  return `$${Math.round(n).toLocaleString('es-CL')}`;
+}
+
+function clpFull(n) {
+  if (n === null || n === undefined) return '—';
+  return '$' + Math.round(n).toLocaleString('es-CL');
+}
+
+function catColor(cat) {
+  const idx = CATEGORIES.indexOf(cat);
+  return CAT_COLORS[idx >= 0 ? idx : 9];
+}
+
+function badgeStyle(cat) {
+  const c = catColor(cat);
+  return `style="background:${c}22;color:${c};border:1px solid ${c}44"`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentPage = 1;
+let debounceTimer;
+let chartMonthly;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadSummary();
+  loadChartMonthly();
+  loadCategories();
+  loadMovements();
+  loadMonths();
+  populateCategoryFilter();
+
+  document.getElementById('filter-search').addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => { currentPage=1; loadMovements(); }, 400);
+  });
+  ['filter-tipo','filter-categoria','filter-mes'].forEach(id =>
+    document.getElementById(id).addEventListener('change', () => { currentPage=1; loadMovements(); })
+  );
+});
+
+function showSection(s) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+}
+
+// ── Summary ───────────────────────────────────────────────────────────────────
+async function loadSummary() {
+  const r = await fetch('/api/summary');
+  const d = await r.json();
+
+  document.getElementById('kpi-balance').textContent   = clpFull(d.balance);
+  document.getElementById('kpi-ingresos').textContent  = clpFormat(d.ingresos);
+  document.getElementById('kpi-gastos').textContent    = clpFormat(Math.abs(d.gastos));
+  document.getElementById('kpi-total').textContent     = d.total_movements?.toLocaleString('es-CL') ?? '—';
+
+  if (d.balance_at) {
+    const dt = new Date(d.balance_at);
+    document.getElementById('kpi-balance-at').textContent =
+      `Actualizado ${dt.toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'})}`;
+  }
+
+  if (d.last_run_at) {
+    const dt = new Date(d.last_run_at);
+    document.getElementById('last-update-text').textContent =
+      `Último sync: ${dt.toLocaleString('es-CL',{dateStyle:'medium',timeStyle:'short'})}`;
+  }
+}
+
+// ── Chart mensual ─────────────────────────────────────────────────────────────
+async function loadChartMonthly() {
+  const r = await fetch('/api/chart/monthly');
+  const data = await r.json();
+
+  const ctx = document.getElementById('chartMonthly').getContext('2d');
+  if (chartMonthly) chartMonthly.destroy();
+
+  chartMonthly = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => {
+        const [y,m] = d.month.split('-');
+        const names = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+        return `${names[parseInt(m)]} ${y}`;
+      }),
+      datasets: [
+        {
+          label: 'Ingresos',
+          data: data.map(d => d.ingresos),
+          backgroundColor: 'rgba(0,212,170,0.7)',
+          borderRadius: 6,
+          borderSkipped: false,
+        },
+        {
+          label: 'Gastos',
+          data: data.map(d => d.gastos),
+          backgroundColor: 'rgba(255,71,87,0.7)',
+          borderRadius: 6,
+          borderSkipped: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: { color: '#5a6a7a', font: { family: 'DM Mono', size: 11 }, boxWidth: 12, boxHeight: 12 }
+        },
+        tooltip: {
+          backgroundColor: '#0f1419',
+          borderColor: '#1a2535',
+          borderWidth: 1,
+          titleColor: '#e8edf2',
+          bodyColor: '#5a6a7a',
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: $${ctx.raw.toLocaleString('es-CL')}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(26,37,53,0.5)' },
+          ticks: { color: '#4a5a6a', font: { family: 'DM Mono', size: 11 } }
+        },
+        y: {
+          grid: { color: 'rgba(26,37,53,0.5)' },
+          ticks: {
+            color: '#4a5a6a',
+            font: { family: 'DM Mono', size: 11 },
+            callback: v => v >= 1_000_000 ? `$${(v/1_000_000).toFixed(1)}M` : `$${(v/1000).toFixed(0)}K`
+          }
+        }
+      }
+    }
+  });
+}
+
+// ── Categorías ────────────────────────────────────────────────────────────────
+async function loadCategories() {
+  const r = await fetch('/api/chart/categories');
+  const data = await r.json();
+
+  const maxVal = data[0]?.total ?? 1;
+  const list = document.getElementById('cat-list');
+  list.innerHTML = data.slice(0, 8).map((d, i) => `
+    <li class="cat-item">
+      <div class="cat-dot" style="background:${catColor(d.categoria)}"></div>
+      <span class="cat-name">${d.categoria}</span>
+      <div class="cat-bar-wrap">
+        <div class="cat-bar" style="width:${(d.total/maxVal*100).toFixed(0)}%;background:${catColor(d.categoria)}"></div>
+      </div>
+      <span class="cat-amount">-${clpFormat(d.total)}</span>
+    </li>
+  `).join('');
+}
+
+function populateCategoryFilter() {
+  const sel = document.getElementById('filter-categoria');
+  CATEGORIES.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Meses ─────────────────────────────────────────────────────────────────────
+async function loadMonths() {
+  const r = await fetch('/api/months');
+  const months = await r.json();
+  const sel = document.getElementById('filter-mes');
+  const names = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  months.forEach(m => {
+    const [y,mo] = m.split('-');
+    const opt = document.createElement('option');
+    opt.value = m;
+    opt.textContent = `${names[parseInt(mo)]} ${y}`;
+    sel.appendChild(opt);
+  });
+}
+
+// ── Movements ─────────────────────────────────────────────────────────────────
+async function loadMovements() {
+  const search    = document.getElementById('filter-search').value;
+  const tipo      = document.getElementById('filter-tipo').value;
+  const categoria = document.getElementById('filter-categoria').value;
+  const mes       = document.getElementById('filter-mes').value;
+
+  const params = new URLSearchParams({ search, tipo, categoria, mes, page: currentPage });
+  const r = await fetch('/api/movements?' + params);
+  const d = await r.json();
+
+  renderMovements(d.movements);
+  renderPagination(d.page, d.pages, d.total);
+}
+
+function renderMovements(movements) {
+  const tbody = document.getElementById('movements-tbody');
+  if (!movements.length) {
+    tbody.innerHTML = `<tr><td colspan="5">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <div class="empty-text">No se encontraron movimientos</div>
+      </div>
+    </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = movements.map(m => {
+    const isPos = m.amount >= 0;
+    return `
+      <tr>
+        <td class="td-date">${m.date}</td>
+        <td class="td-desc" title="${m.description}">${m.description}</td>
+        <td><span class="badge" ${badgeStyle(m.categoria)}>${m.categoria}</span></td>
+        <td class="td-amount ${isPos ? 'positive' : 'negative'}">
+          ${isPos ? '+' : ''}${clpFull(m.amount)}
+        </td>
+        <td class="td-balance">${m.balance ? clpFull(m.balance) : '—'}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function renderPagination(page, pages, total) {
+  document.getElementById('pagination-info').textContent =
+    `${total.toLocaleString('es-CL')} movimientos · Página ${page} de ${pages}`;
+
+  const container = document.getElementById('pagination-btns');
+  const btns = [];
+
+  btns.push(`<button class="pg-btn" onclick="goPage(${page-1})" ${page<=1?'disabled':''}>← Ant</button>`);
+
+  const start = Math.max(1, page-2);
+  const end   = Math.min(pages, page+2);
+  for (let i=start; i<=end; i++) {
+    btns.push(`<button class="pg-btn ${i===page?'active':''}" onclick="goPage(${i})">${i}</button>`);
+  }
+
+  btns.push(`<button class="pg-btn" onclick="goPage(${page+1})" ${page>=pages?'disabled':''}>Sig →</button>`);
+  container.innerHTML = btns.join('');
+}
+
+function goPage(p) {
+  currentPage = p;
+  loadMovements();
+  window.scrollTo({ top: document.querySelector('.table-card').offsetTop - 20, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>

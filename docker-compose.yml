@@ -1,9 +1,11 @@
 services:
-  open-banking:
+
+  # ── Scraper (Node + Chromium) ──────────────────────────────────────────────
+  scraper:
     build:
       context: .
-      dockerfile: Dockerfile
-    container_name: open-banking-chile
+      dockerfile: Dockerfile.scraper
+    container_name: bice-scraper
     restart: unless-stopped
     security_opt:
       - seccomp:unconfined
@@ -21,6 +23,27 @@ services:
       - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
       - CHROME_PATH=/usr/bin/chromium
 
+  # ── Dashboard (Python Flask) ───────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    container_name: bice-dashboard
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - bank_data:/data:ro        # Solo lectura
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-cambia-esto-en-produccion}
+      - DASHBOARD_USER=${DASHBOARD_USER:-admin}
+      - DASHBOARD_PASS=${DASHBOARD_PASS:-admin123}
+      - DB_PATH=/data/bank_data.db
+      - TZ=America/Santiago
+    depends_on:
+      - scraper
+
+# Volumen compartido entre ambos contenedores
 volumes:
   bank_data:
     driver: local
