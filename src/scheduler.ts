@@ -138,21 +138,7 @@ async function runScraper(job: BankJob, db: Database.Database): Promise<void> {
       VALUES (?, ?, ?, ?, ?, ?)
     `);
 
-    const insertMany = db.transaction((movements: typeof result.movements) => {
-      for (const m of movements) {
-        insertMany.run(
-          job.id,
-          m.date,
-          m.description,
-          m.amount,
-          m.balance ?? null,
-          fetchedAt,
-        );
-      }
-    });
-
-    // Usar run en lugar de transaction para el loop
-    const insertManyRun = db.transaction((movements: typeof result.movements) => {
+    const insertMany = db.transaction((movements: typeof result.movements): number => {
       let count = 0;
       for (const m of movements) {
         const info = insertMov.run(
@@ -168,7 +154,7 @@ async function runScraper(job: BankJob, db: Database.Database): Promise<void> {
       return count;
     });
 
-    movCount = insertManyRun(result.movements) as number;
+    movCount = insertMany(result.movements) as number;
     success = true;
 
     log(`✓  ${job.id}: saldo=$${result.balance?.toLocaleString("es-CL") ?? "N/A"}, movimientos nuevos=${movCount}/${result.movements.length}`);
